@@ -79,12 +79,53 @@ def scores_departements(df):
         .rename(columns={"voix": "votes"})
     )
 
-    # Total par département
     total_dep = res.groupby("code_departement")["votes"].transform("sum")
 
-    # Score %
     res["score"] = (res["votes"] / total_dep * 100).round(2).astype(str) + "%"
 
     res = res.sort_values(by=["code_departement", "votes"], ascending=[True, False])
 
     return res
+
+
+def comparaison_nationale(df):
+    """
+    [Question 5]
+    Ajoute les scores nationaux aux scores départementaux
+    """
+
+    national = scores_nationaux_2(df).rename(
+        columns={"votes": "votes_national", "score": "score_national"}
+    )
+    
+    dep = scores_departements(df).rename(
+        columns={"votes": "votes_departement", "score": "score_departement"}
+    )
+
+    res = dep.merge(national, on="candidat", how="left")
+
+    return res
+
+
+def comparaison_departement(df, code_dep):
+    """
+    [question 5 verif]
+    Compare les scores départementaux et nationaux pour un département donné
+    """
+
+    df_comp = comparaison_nationale(df).copy()
+    
+    df_dep = df_comp[df_comp["code_departement"] == str(code_dep)]
+
+    df_dep = df_dep.sort_values(by="votes_departement", ascending=False)
+
+    df_dep = df_dep.rename(columns={
+        "code_departement": "Département",
+        "candidats": "Candidat",
+        "votes_departement": "Votes (dep)",
+        "score_departement": "Score dep (%)",
+        "votes_national": "Votes (national)",
+        "score_national_2": "Score national (%)"
+    })
+
+    return df_dep
