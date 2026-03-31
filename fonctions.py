@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 def compter_candidats(df):
     """
-    [Question 2] 
+    [Question 2]
     Compte le nombre de candidats à l'élection présidentielle 2022
     en excluant les bulletins blancs, nuls et abstentions.
 
@@ -35,7 +35,7 @@ def scores_nationaux_2(df):
     df_travail = df.copy()
 
     df_travail["voix"] = pd.to_numeric(df_travail["voix"], errors="coerce").fillna(0)
-    
+
     valeurs_exclues = ["BLANCS", "NULS", "ABSTENTIONS"]
     mask_exprimes = ~df_travail["nom"].str.upper().isin(valeurs_exclues)
 
@@ -48,12 +48,12 @@ def scores_nationaux_2(df):
         .reset_index()
         .rename(columns={"voix": "votes"})
     )
-    
+
     total_voix = scores["votes"].sum()
     scores["score"] = (scores["votes"] / total_voix) * 100
-    
+
     scores = scores.sort_values(by="votes", ascending=False)
-    
+
     return scores
 
 
@@ -68,7 +68,7 @@ def scores_departements(df):
     df_travail["voix"] = pd.to_numeric(df_travail["voix"], errors="coerce").fillna(0)
 
     df_exprimes = df_travail.query(
-        "nom.str.upper() not in ['BLANCS', 'NULS', 'ABSTENTIONS']", 
+        "nom.str.upper() not in ['BLANCS', 'NULS', 'ABSTENTIONS']",
         engine="python"
     )
 
@@ -97,7 +97,7 @@ def comparaison_nationale(df):
     national = scores_nationaux_2(df).rename(
         columns={"votes": "votes_national", "score": "score_national"}
     )
-    
+
     dep = scores_departements(df).rename(
         columns={"votes": "votes_departement", "score": "score_departement"}
     )
@@ -137,8 +137,8 @@ def tracer_top_surrepresentations(df_scores, nom_candidat, n=5):
     fig, ax = plt.subplots(figsize=(10, 6))
 
     bars = ax.barh(
-        top_df["code_departement"], 
-        top_df["surrepresentation"], 
+        top_df["code_departement"],
+        top_df["surrepresentation"],
         color="royalblue",
         edgecolor="black"
     )
@@ -155,9 +155,64 @@ def tracer_top_surrepresentations(df_scores, nom_candidat, n=5):
             width + 1,
             bar.get_y() + bar.get_height()/2,
             f'{width:.1f}%',
-            va='center', 
+            va='center',
             fontsize=10
         )
 
     plt.tight_layout()
     return plt.show()
+
+
+
+def tracer_carte_surrepresentation(score_departements, nom_candidat):
+   df_candidat = score_departements[score_departements["candidat"] == nom_candidat].copy()
+
+
+   departement_borders = carti_download(
+       values=["France"],
+       crs=4326,
+       borders="DEPARTEMENT",
+       vectorfile_format="geojson",
+       simplification=50,
+       filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
+       source="EXPRESS-COG-CARTO-TERRITOIRE",
+       year=2022
+   )
+
+
+   departement_borders['INSEE_DEP'] = departement_borders['INSEE_DEP'].astype(str).str.strip()
+   df_candidat["code_departement"] = df_candidat["code_departement"].astype(str).str.strip()
+
+
+   carte = departement_borders.merge(
+       df_candidat,
+       left_on='INSEE_DEP',
+       right_on="code_departement",
+       how="left"
+   )
+
+
+   fig, ax = plt.subplots(figsize=(12, 12))
+
+
+   carte.plot(
+       column="surrepresentation",
+       cmap="RdBu_r",
+       linewidth=0.8,
+       edgecolor="black",
+       legend=True,
+       ax=ax,
+       legend_kwds={
+           "label": "(% par rapport à la moyenne nationale)",
+           "shrink": 0.7
+       }
+   )
+
+
+   ax.set_title(f"Surreprésentation de {nom_candidat} par département")
+   ax.axis("off")
+   plt.tight_layout()
+   plt.show()
+
+
+
