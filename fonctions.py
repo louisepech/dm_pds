@@ -15,9 +15,10 @@ def compter_candidats(df):
     ------
     str : phrase type avec le nombre de candidats
     """
-    mask_exprimes = ~df["nom"].str.contains("BLANC|NUL|ABSTENTION", case=False, na=False)
-    df_exprimes = df[mask_exprimes]
-
+    condition = "nom != 'Blancs' and nom != 'Nuls' and nom != 'Abstentions'"
+    
+    df_exprimes = df.query(condition)
+    
     candidats = df_exprimes["candidat"].nunique()
 
     return f"En 2022, il y avait {candidats} candidats à l'élection présidentielle."
