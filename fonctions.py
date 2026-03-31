@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from cartiflette import carti_download
 
 def compter_candidats(df):
     """
@@ -163,7 +164,6 @@ def tracer_top_surrepresentations(df_scores, nom_candidat, n=5):
     return plt.show()
 
 
-
 def tracer_carte_surrepresentation(score_departements, nom_candidat):
    df_candidat = score_departements[score_departements["candidat"] == nom_candidat].copy()
 
@@ -213,6 +213,3 @@ def tracer_carte_surrepresentation(score_departements, nom_candidat):
    ax.axis("off")
    plt.tight_layout()
    plt.show()
-
-
-
