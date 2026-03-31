@@ -16,10 +16,10 @@ def compter_candidats(df):
     ------
     str : phrase type avec le nombre de candidats
     """
-    condition = "nom != 'Blancs' and nom != 'Nuls' and nom != 'Abstentions'"
-    
-    df_exprimes = df.query(condition)
-    
+    indice_exprimes = ~df["nom"].str.contains("BLANC|NUL|ABSTENTION", case=False, na=False)
+
+    df_exprimes = df[indice_exprimes]
+
     candidats = df_exprimes["candidat"].nunique()
 
     return f"En 2022, il y avait {candidats} candidats à l'élection présidentielle."
@@ -64,18 +64,14 @@ def scores_departements(df):
     Calcule les scores (%) aux présidentielles par département et candidat
     """
 
-    # Préparation et nettoyage des types
     df_travail = df.copy()
     df_travail["voix"] = pd.to_numeric(df_travail["voix"], errors="coerce").fillna(0)
 
-    # Filtrage des votes exprimés via query (plus lisible)
-    # On exclut les votes blancs, nuls et l'abstention [cite: 29, 33]
     df_exprimes = df_travail.query(
         "nom.str.upper() not in ['BLANCS', 'NULS', 'ABSTENTIONS']", 
         engine="python"
     )
 
-    # Agrégation des voix par département et par candidat
     res = (
         df_exprimes
         .groupby(["code_departement", "candidat"])["voix"]
@@ -84,12 +80,9 @@ def scores_departements(df):
         .rename(columns={"voix": "votes"})
     )
 
-    # Calcul du score (%) au sein de chaque département
-    # .transform('sum') permet de diviser chaque ligne par le total de son groupe (département)
     total_par_dep = res.groupby("code_departement")["votes"].transform("sum")
     res["score"] = (res["votes"] / total_par_dep) * 100
 
-    # Tri par code départemental, puis par succès électoral (votes décroissants)
     res = res.sort_values(by=["code_departement", "votes"], ascending=[True, False])
 
     return res
@@ -121,8 +114,6 @@ def calculer_surrepresentation(df):
     """
     df_res = comparaison_nationale(df)
 
-    # 2. Calcul de la surreprésentation en pourcentage relatif
-    # Formule : ((score_dep / score_national) - 1) * 100
     df_res["surrepresentation"] = (
         (df_res["score_departement"] / df_res["score_national"]) - 1
     ) * 100
@@ -148,7 +139,7 @@ def tracer_top_surrepresentations(df_scores, nom_candidat, n=5):
     bars = ax.barh(
         top_df["code_departement"], 
         top_df["surrepresentation"], 
-        color="royalblue", # Un bleu nuit très académique
+        color="royalblue",
         edgecolor="black"
     )
 
@@ -158,13 +149,12 @@ def tracer_top_surrepresentations(df_scores, nom_candidat, n=5):
 
     ax.axvline(0, color='black', linewidth=0.8)
 
-    # Ajout des étiquettes de texte au bout de chaque barre
     for bar in bars:
         width = bar.get_width()
         ax.text(
-            width + 1,        # Position X (un peu après la barre)
-            bar.get_y() + bar.get_height()/2, # Position Y (au milieu de la barre)
-            f'{width:.1f}%',  # Texte formaté
+            width + 1,
+            bar.get_y() + bar.get_height()/2,
+            f'{width:.1f}%',
             va='center', 
             fontsize=10
         )
